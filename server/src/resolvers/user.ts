@@ -6,10 +6,12 @@ import {
   Field,
   Ctx,
   ObjectType,
+  Query,
 } from "type-graphql";
 import { MyContext } from "../types";
 import { User } from "../entities/User";
 import argon2 from "argon2";
+
 
 @InputType()
 class UsernamePasswordInput {
@@ -39,12 +41,21 @@ class UserResponse {
 @Resolver()
 export class UserResolver {
 
+  @Query(() => User, { nullable: true })
+  async me( // return the user if he is logged in`
+    @Ctx() { em, req }: MyContext): Promise<User | null>{
+      if (!req.session.userID) {
+        return null;
+      }
+      const user = await em.findOne(User, { id: req.session.userID });
+      return user;
+    }
+
   @Mutation(() => UserResponse)
   async register(
     @Arg("options") options: UsernamePasswordInput,
-    @Ctx() { em }: MyContext
+    @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
-
     if (options.username.length <= 2) {
       return {
         errors: [
@@ -56,16 +67,16 @@ export class UserResolver {
       };
     }
 
-  if (options.password.length <= 2) {
-    return {
-      errors: [
-        {
-          field: "username",
-          message: "password should have atleast 3 characters",
-        },
-      ],
-    };
-  }
+    if (options.password.length <= 2) {
+      return {
+        errors: [
+          {
+            field: "username",
+            message: "password should have atleast 3 characters",
+          },
+        ],
+      };
+    }
     const hashedPassword = await argon2.hash(options.password);
     const user = em.create(User, {
       username: options.username,
@@ -83,17 +94,18 @@ export class UserResolver {
               message: "username is already taken",
             },
           ],
-        }; 
+        };
       }
-       console.log("message: " + err.message);
+      console.log("message: " + err.message);
     }
+    req.session.userID = user.id; // cookie  set-up & logged in 
     return { user };
   }
 
   @Mutation(() => UserResponse)
   async login(
     @Arg("options") options: UsernamePasswordInput,
-    @Ctx() { em }: MyContext
+    @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
     const user = await em.findOneOrFail(User, { username: options.username });
 
@@ -120,6 +132,9 @@ export class UserResolver {
         ],
       };
     }
+
+    req.session.userID = user.id; // setting the cookie id
+
     return {
       user,
     };
