@@ -1,4 +1,4 @@
-import 'reflect-metadata';
+import "reflect-metadata";
 import { MikroORM } from "@mikro-orm/core";
 import { __prod__ } from "./constants";
 import microConfig from "./mikro-orm.config";
@@ -11,34 +11,37 @@ import { UserResolver } from "./resolvers/user";
 import redis from "redis";
 import session from "express-session";
 import connectRedis from "connect-redis";
-import { MyContext } from './types';
+import cors from "cors";
 
-const main =  async () => {
-  const orm = await MikroORM.init(microConfig); // connect to the db
-  await orm.getMigrator().up(); // creating a table
+const main = async () => {
+  const orm = await MikroORM.init(microConfig);
+  await orm.getMigrator().up();
 
-  // express app
   const app = express();
 
-  // redis setup before the apollo bc this will run inside apollo 
-  let RedisStore = connectRedis(session);
-  let redisClient = redis.createClient();
-
+  const RedisStore = connectRedis(session);
+  const redisClient = redis.createClient();
+  app.use(
+    cors({
+      origin: "http://localhost:3000",
+      credentials: true,
+    })
+  );
   app.use(
     session({
-      name: "qid", //cookie name
+      name: "qid",
       store: new RedisStore({
         client: redisClient,
-        disableTouch: true, // make call (touchs) when a user does something to make teh cookie active
+        disableTouch: true,
       }),
       cookie: {
-        maxAge: 1000 * 60 * 60 * 24 * 365 * 10, // 10 yrs
-        sameSite: "lax", // ?? GOOGLE
-        httpOnly: true, // cannot access the cookie in teh frontend
+        maxAge: 1000 * 60 * 60 * 24 * 365 * 10, // 10 years
+        httpOnly: true,
+        sameSite: "lax", // csrf
         secure: __prod__, // cookie only works in https
       },
       saveUninitialized: false,
-      secret: "abcd", // we would want to have it as an env var (dont know why thou?)
+      secret: "qowiueojwojfalksdjoqiwueo",
       resave: false,
     })
   );
@@ -46,18 +49,21 @@ const main =  async () => {
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
       resolvers: [HelloResolver, PostResolver, UserResolver],
-      validate: false, // class validation is false
+      validate: false,
     }),
-    context: ({ req, res }): MyContext => ({ em: orm.em, req, res }),
+    context: ({ req, res }) => ({ em: orm.em, req, res }),
   });
 
-  apolloServer.applyMiddleware({ app });
+  apolloServer.applyMiddleware({
+    app,
+    cors: false,
+  });
 
   app.listen(4000, () => {
-    console.log("server is running at 4000");
+    console.log("server started on localhost:4000");
   });
-}
+};
 
 main().catch((err) => {
-    console.error(err);
+  console.error(err);
 });
