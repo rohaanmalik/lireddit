@@ -3,8 +3,9 @@ import { Form, Formik } from 'formik'
 import React from 'react'
 import { InputField } from '../components/InputField';
 import { Wrapper } from '../components/Wrapper';
-import { useMutation  } from "urql";
 import { useRegisterMutation } from '../generated/graphql';
+import { toErrorMap } from '../utils/toErrorMap';
+import { useRouter } from "next/router";
 
 interface registerProps {}
 
@@ -12,16 +13,18 @@ interface registerProps {}
 const Register: React.FC<registerProps> = ({ }) => {
   // const [,register] = useMutation(REGISTER_MUT); // 1st obj is something to do with mutation,2nd var is of our choice
   const [,register] = useRegisterMutation(); 
+  const router = useRouter();
  return (
    <Wrapper variant={"small"}>
      <Formik
        initialValues={{ username: "", password: "" }}
-       onSubmit={async (values , {setErrors}) => {
+       onSubmit={async (values, { setErrors }) => {
          const response = await register(values);
-         if (response.data?.register.errors){
-          setErrors({
-            username:"hey i am an error "
-          })
+         if (response.data?.register.errors) {
+           setErrors(toErrorMap(response.data.register.errors));
+         } else if (response.data?.register.user){
+          // logged in 
+        router.push("/")           
          }
        }}
      >

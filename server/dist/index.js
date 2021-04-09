@@ -49,7 +49,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
             secure: constants_1.__prod__,
         },
         saveUninitialized: false,
-        secret: "qowiueojwojfalksdjoqiwueo",
+        secret: "abcd",
         resave: false,
     }));
     const apolloServer = new apollo_server_express_1.ApolloServer({
