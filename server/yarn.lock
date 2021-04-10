@@ -48,6 +48,11 @@
     http-errors "^1.7.3"
     object-path "^0.11.4"
 
+"@graphql-typed-document-node/core@^3.1.0":
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/@graphql-typed-document-node/core/-/core-3.1.0.tgz#0eee6373e11418bfe0b5638f654df7a4ca6a3950"
+  integrity sha512-wYn6r8zVZyQJ6rQaALBEln5B1pzxb9shV5Ef97kTvn6yVGrqyXVnDqnU24MXnFubR+rZjBY9NWuxX3FB2sTsjg==
+
 "@josephg/resolvable@^1.0.0":
   version "1.0.0"
   resolved "https://registry.npmjs.org/@josephg/resolvable/-/resolvable-1.0.0.tgz"
@@ -497,6 +502,22 @@
   integrity sha512-ISCK1iFnR+jYv7+jLNX0wDqesZ/5RAeY3wUx6QaphmocphU61h+b+PHjS18TF4WIPTu/MMzxIq2PHr32o2TS5Q==
   dependencies:
     "@types/node" "*"
+
+"@urql/core@>=2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@urql/core/-/core-2.0.0.tgz#b4936dd51fe84cb570506d9ee2579149689f7535"
+  integrity sha512-Qj24CG8ullqZZsYmjrSH0JhH+nY7kj8GbVbA9si3KUjlYs75A/MBQU3i97j6oWyGldDBapyis2CfaQeXKbv8rA==
+  dependencies:
+    "@graphql-typed-document-node/core" "^3.1.0"
+    wonka "^4.0.14"
+
+"@urql/exchange-graphcache@^4.0.0":
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/@urql/exchange-graphcache/-/exchange-graphcache-4.0.0.tgz#be7dd362b6949dee8f2188139adca692b70a3b05"
+  integrity sha512-UuLyR2tuy28KFmcMzD0aU3hWEa62H8Yfo9rBVAaXPxvGUD8g0Bq3NXUGLBvXxKMZcodn7AjYeVBlfPCHth9awA==
+  dependencies:
+    "@urql/core" ">=2.0.0"
+    wonka "^4.0.14"
 
 "@wry/equality@^0.1.2":
   version "0.1.11"
@@ -4022,6 +4043,11 @@ widest-line@^3.1.0:
   integrity sha512-NsmoXalsWVDMGupxZ5R08ka9flZjjiLvHVAWYOKtiKM8ujtZWr9cRffak+uSE48+Ob8ObalXpwyeUiyDD6QFgg==
   dependencies:
     string-width "^4.0.0"
+
+wonka@^4.0.14:
+  version "4.0.15"
+  resolved "https://registry.yarnpkg.com/wonka/-/wonka-4.0.15.tgz#9aa42046efa424565ab8f8f451fcca955bf80b89"
+  integrity sha512-U0IUQHKXXn6PFo9nqsHphVCE5m3IntqZNB9Jjn7EB1lrR7YTDY3YWgFvEvwniTzXSvOH/XMzAZaIfJF/LvHYXg==
 
 wrap-ansi@^6.2.0:
   version "6.2.0"
