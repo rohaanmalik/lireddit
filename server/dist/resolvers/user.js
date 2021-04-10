@@ -126,6 +126,26 @@ let UserResolver = class UserResolver {
     }
     login(options, { em, req }) {
         return __awaiter(this, void 0, void 0, function* () {
+            if (options.username.length <= 2) {
+                return {
+                    errors: [
+                        {
+                            field: "username",
+                            message: "username should have atleast 3 characters",
+                        },
+                    ],
+                };
+            }
+            if (options.password.length <= 2) {
+                return {
+                    errors: [
+                        {
+                            field: "username",
+                            message: "password should have atleast 3 characters",
+                        },
+                    ],
+                };
+            }
             const user = yield em.findOneOrFail(User_1.User, { username: options.username });
             if (!user) {
                 return {
@@ -149,9 +169,7 @@ let UserResolver = class UserResolver {
                 };
             }
             req.session.userID = user.id;
-            return {
-                user,
-            };
+            return { user };
         });
     }
 };

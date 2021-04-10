@@ -107,6 +107,28 @@ export class UserResolver {
     @Arg("options") options: UsernamePasswordInput,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
+
+    if (options.username.length <= 2) {
+      return {
+        errors: [
+          {
+            field: "username",
+            message: "username should have atleast 3 characters",
+          },
+        ],
+      };
+    }
+
+    if (options.password.length <= 2) {
+      return {
+        errors: [
+          {
+            field: "username",
+            message: "password should have atleast 3 characters",
+          },
+        ],
+      };
+    }
     const user = await em.findOneOrFail(User, { username: options.username });
 
     if (!user) {
@@ -135,8 +157,6 @@ export class UserResolver {
 
     req.session.userID = user.id; // setting the cookie id
 
-    return {
-      user,
-    };
+    return { user };
   }
 }
