@@ -12,7 +12,6 @@ import { MyContext } from "../types";
 import { User } from "../entities/User";
 import argon2 from "argon2";
 
-
 @InputType()
 class UsernamePasswordInput {
   @Field()
@@ -40,16 +39,17 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
-
   @Query(() => User, { nullable: true })
-  async me( // return the user if he is logged in`
-    @Ctx() { em, req }: MyContext): Promise<User | null>{
-      if (!req.session.userID) {
-        return null;
-      }
-      const user = await em.findOne(User, { id: req.session.userID });
-      return user;
+  async me(
+    // return the user if he is logged in`
+    @Ctx() { em, req }: MyContext
+  ): Promise<User | null> {
+    if (!req.session.userID) {
+      return null;
     }
+    const user = await em.findOne(User, { id: req.session.userID });
+    return user;
+  }
 
   @Mutation(() => UserResponse)
   async register(
@@ -98,7 +98,8 @@ export class UserResolver {
       }
       console.log("message: " + err.message);
     }
-    req.session.userID = user.id; // cookie  set-up & logged in 
+    console.log("reached here ");
+    req.session.userID = user.id; // cookie  set-up & logged in
     return { user };
   }
 
@@ -107,6 +108,27 @@ export class UserResolver {
     @Arg("options") options: UsernamePasswordInput,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
+    if (options.username.length <= 2) {
+      return {
+        errors: [
+          {
+            field: "username",
+            message: "username should have atleast 3 characters",
+          },
+        ],
+      };
+    }
+
+    if (options.password.length <= 2) {
+      return {
+        errors: [
+          {
+            field: "username",
+            message: "password should have atleast 3 characters",
+          },
+        ],
+      };
+    }
     const user = await em.findOneOrFail(User, { username: options.username });
 
     if (!user) {
@@ -135,8 +157,6 @@ export class UserResolver {
 
     req.session.userID = user.id; // setting the cookie id
 
-    return {
-      user,
-    };
+    return { user };
   }
 }
