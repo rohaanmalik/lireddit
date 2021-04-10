@@ -23,7 +23,7 @@ const main = async () => {
   const redisClient = redis.createClient();
   app.use(
     cors({
-      origin: "http://localhost:3000",
+      origin: "http://192.168.29.5:3000",
       credentials: true,
     })
   );

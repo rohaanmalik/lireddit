@@ -120,6 +120,7 @@ let UserResolver = class UserResolver {
                 }
                 console.log("message: " + err.message);
             }
+            console.log("reached here ");
             req.session.userID = user.id;
             return { user };
         });
