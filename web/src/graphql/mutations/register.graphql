@@ -5,8 +5,7 @@
        message
      }
      user {
-       id
-       username
+       ...RegularUser
      }
    }
  }

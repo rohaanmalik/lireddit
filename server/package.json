@@ -29,6 +29,7 @@
     "@types/connect-redis": "^0.0.16",
     "@types/express-session": "^1.17.3",
     "@types/redis": "^2.8.28",
+    "@urql/exchange-graphcache": "^4.0.0",
     "apollo-server-express": "^2.22.2",
     "argon2": "^0.27.2",
     "co": "^4.6.0",
