@@ -10,9 +10,11 @@ import {
 import { MyContext } from "../types";
 import { User } from "../entities/User";
 import argon2 from "argon2";
-import { COOKIE_NAME } from "../constants";
+import { COOKIE_NAME, FORGET_PASSWORD_PREFIX } from "../constants";
 import { UsernamePasswordInput } from "../utils/UsernamePasswordInput";
 import { validateRegister } from "../utils/validateRegister";
+import { sendEmail } from "../utils/sendEmail";
+import { v4 } from "uuid";
 
 @ObjectType()
 class FieldError {
@@ -35,10 +37,30 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
-  // @Mutation(() => Boolean)
-  // async forgotPassword(@Arg("email") email: string, @Ctx() { em }: MyContext) {
-  //   return true;
-  // }
+
+  @Mutation(() => Boolean)
+  async forgotPassword(@Arg("email") email: string, @Ctx() { em, redisClient }: MyContext) {
+    const user = em.findOne(User, {email})
+
+    if(!user){
+      // the email is not the DB
+      return true;
+    }
+
+    const token = v4();
+
+  await redisClient.set(
+    FORGET_PASSWORD_PREFIX + token,
+    user.id,
+    "ex",
+    1000 * 60 * 60 * 24 * 3
+  );
+
+    const text = `<a href="http://localhost:3000/change-password/${token}"> reset password</a>`;
+
+    sendEmail(email,text);
+    return true;
+  }
 
   @Query(() => User, { nullable: true })
   async me(
