@@ -2,7 +2,6 @@ import {
   Resolver,
   Mutation,
   Arg,
-  InputType,
   Field,
   Ctx,
   ObjectType,
@@ -11,20 +10,18 @@ import {
 import { MyContext } from "../types";
 import { User } from "../entities/User";
 import argon2 from "argon2";
-import { COOKIE_NAME } from "../constants";
-
-@InputType()
-class UsernamePasswordInput {
-  @Field()
-  username: string;
-  @Field()
-  password: string;
-}
+import { COOKIE_NAME, FORGET_PASSWORD_PREFIX } from "../constants";
+import { UsernamePasswordInput } from "../utils/UsernamePasswordInput";
+import { validateRegister } from "../utils/validateRegister";
+import { sendEmail } from "../utils/sendEmail";
+import { v4 } from "uuid";
 
 @ObjectType()
 class FieldError {
+
   @Field()
   field: string;
+
   @Field()
   message: string;
 }
@@ -40,6 +37,88 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+
+  @Mutation(() => UserResponse)
+  async changePassword(
+    @Arg("token") token: string,
+    @Arg("newPassword") newPassword: string,
+    @Ctx() { em, req,  redisClient }: MyContext
+): Promise<UserResponse> {
+  if (newPassword.length <= 2) {
+    return {
+      errors: [
+        {
+          field: "newPassword",
+          message: "password should have atleast 3 characters",
+        },
+      ],
+    };
+  }
+
+  const key = FORGET_PASSWORD_PREFIX + token;
+  const userId =  await redisClient.get(key);
+
+  if (!userId) {
+    return {
+      errors: [
+        {
+          field: "token",
+          message: "token is expired",
+        },
+      ],
+    };
+  }
+
+  const user = em.findOne(User, { id: parseInt(userId) });
+
+  if (!user) {
+    return {
+      errors: [
+        {
+          field: "token",
+          message: "user does not exist",
+        },
+      ],
+    };
+  }
+
+  user.password = await argon2.hash(newPassword);
+  await em.persistAndFlush(user);
+
+  await redisClient.del(key);
+  // log in user after change password
+  req.session.userID = user.id; // cookie  set-up & logged in
+
+  return { user }; 
+}
+
+  @Mutation(() => Boolean)
+  async forgotPassword(
+    @Arg("email") email: string,
+    @Ctx() { em, redisClient }: MyContext
+  ) {
+    const user = em.findOne(User, { email });
+
+    if (!user) {
+      // the email is not the DB
+      return true;
+    }
+
+    const token = v4();
+
+    await redisClient.set(
+      FORGET_PASSWORD_PREFIX + token,
+      user.id,
+      "ex",
+      1000 * 60 * 60 * 24 * 3
+    );
+
+    const text = `<a href="http://localhost:3000/change-password/${token}"> reset password</a>`;
+
+    sendEmail(email, text);
+    return true;
+  }
+
   @Query(() => User, { nullable: true })
   async me(
     // return the user if he is logged in`
@@ -57,31 +136,15 @@ export class UserResolver {
     @Arg("options") options: UsernamePasswordInput,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
-    if (options.username.length <= 2) {
-      return {
-        errors: [
-          {
-            field: "username",
-            message: "username should have atleast 3 characters",
-          },
-        ],
-      };
-    }
-
-    if (options.password.length <= 2) {
-      return {
-        errors: [
-          {
-            field: "username",
-            message: "password should have atleast 3 characters",
-          },
-        ],
-      };
+    const errors = validateRegister(options);
+    if (errors) {
+      return { errors };
     }
     const hashedPassword = await argon2.hash(options.password);
     const user = em.create(User, {
       username: options.username,
       password: hashedPassword,
+      email: options.email,
     });
 
     try {
@@ -99,17 +162,17 @@ export class UserResolver {
       }
       console.log("message: " + err.message);
     }
-    console.log("reached here ");
     req.session.userID = user.id; // cookie  set-up & logged in
     return { user };
   }
 
   @Mutation(() => UserResponse)
   async login(
-    @Arg("options") options: UsernamePasswordInput,
+    @Arg("usernameOrEmail") usernameOrEmail: string,
+    @Arg("password") password: string,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
-    if (options.username.length <= 2) {
+    if (usernameOrEmail.length <= 2) {
       return {
         errors: [
           {
@@ -120,7 +183,7 @@ export class UserResolver {
       };
     }
 
-    if (options.password.length <= 2) {
+    if (password.length <= 2) {
       return {
         errors: [
           {
@@ -130,7 +193,12 @@ export class UserResolver {
         ],
       };
     }
-    const user = await em.findOneOrFail(User, { username: options.username });
+    const user = await em.findOneOrFail(
+      User,
+      usernameOrEmail.includes("@")
+        ? { email: usernameOrEmail }
+        : { username: usernameOrEmail }
+    );
 
     if (!user) {
       return {
@@ -143,7 +211,7 @@ export class UserResolver {
       };
     }
 
-    const valid = await argon2.verify(user.password, options.password);
+    const valid = await argon2.verify(user.password, password);
 
     if (!valid) {
       return {
@@ -162,9 +230,7 @@ export class UserResolver {
   }
 
   @Mutation(() => Boolean)
-  logout(
-    @Ctx() { req, res }: MyContext
-  ){
+  logout(@Ctx() { req, res }: MyContext) {
     return new Promise((resolve) =>
       req.session.destroy((err) => {
         res.clearCookie(COOKIE_NAME);
