@@ -38,27 +38,84 @@ class UserResponse {
 @Resolver()
 export class UserResolver {
 
-  @Mutation(() => Boolean)
-  async forgotPassword(@Arg("email") email: string, @Ctx() { em, redisClient }: MyContext) {
-    const user = em.findOne(User, {email})
+  @Mutation(() => UserResponse)
+  async changePassword(
+    @Arg("token") token: string,
+    @Arg("newPassword") newPassword: string,
+    @Ctx() { em, req,  redisClient }: MyContext
+): Promise<UserResponse> {
+  if (newPassword.length <= 2) {
+    return {
+      errors: [
+        {
+          field: "newPassword",
+          message: "password should have atleast 3 characters",
+        },
+      ],
+    };
+  }
 
-    if(!user){
+  const key = FORGET_PASSWORD_PREFIX + token;
+  const userId =  await redisClient.get(key);
+
+  if (!userId) {
+    return {
+      errors: [
+        {
+          field: "token",
+          message: "token is expired",
+        },
+      ],
+    };
+  }
+
+  const user = em.findOne(User, { id: parseInt(userId) });
+
+  if (!user) {
+    return {
+      errors: [
+        {
+          field: "token",
+          message: "user does not exist",
+        },
+      ],
+    };
+  }
+
+  user.password = await argon2.hash(newPassword);
+  await em.persistAndFlush(user);
+
+  await redisClient.del(key);
+  // log in user after change password
+  req.session.userID = user.id; // cookie  set-up & logged in
+
+  return { user }; 
+}
+
+  @Mutation(() => Boolean)
+  async forgotPassword(
+    @Arg("email") email: string,
+    @Ctx() { em, redisClient }: MyContext
+  ) {
+    const user = em.findOne(User, { email });
+
+    if (!user) {
       // the email is not the DB
       return true;
     }
 
     const token = v4();
 
-  await redisClient.set(
-    FORGET_PASSWORD_PREFIX + token,
-    user.id,
-    "ex",
-    1000 * 60 * 60 * 24 * 3
-  );
+    await redisClient.set(
+      FORGET_PASSWORD_PREFIX + token,
+      user.id,
+      "ex",
+      1000 * 60 * 60 * 24 * 3
+    );
 
     const text = `<a href="http://localhost:3000/change-password/${token}"> reset password</a>`;
 
-    sendEmail(email,text);
+    sendEmail(email, text);
     return true;
   }
 
@@ -79,9 +136,8 @@ export class UserResolver {
     @Arg("options") options: UsernamePasswordInput,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
-
-    const errors =  validateRegister(options);
-    if (errors){
+    const errors = validateRegister(options);
+    if (errors) {
       return { errors };
     }
     const hashedPassword = await argon2.hash(options.password);
@@ -90,7 +146,7 @@ export class UserResolver {
       password: hashedPassword,
       email: options.email,
     });
-    
+
     try {
       await em.persistAndFlush(user);
     } catch (err) {
@@ -116,7 +172,6 @@ export class UserResolver {
     @Arg("password") password: string,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
-
     if (usernameOrEmail.length <= 2) {
       return {
         errors: [

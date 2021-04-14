@@ -20,13 +20,15 @@ const main = async () => {
   const app = express();
 
   const RedisStore = connectRedis(session);
-  const redisClient = redis();
+  const redisClient =  new redis();
+
   app.use(
     cors({
       origin: "http://localhost:3000",
       credentials: true,
     })
   );
+
   app.use(
     session({
       name: COOKIE_NAME,
