@@ -24,10 +24,6 @@
     "typescript": "^4.2.3"
   },
   "dependencies": {
-    "@mikro-orm/cli": "^4.5.1",
-    "@mikro-orm/core": "^4.5.1",
-    "@mikro-orm/migrations": "^4.5.1",
-    "@mikro-orm/postgresql": "^4.5.1",
     "@types/connect-redis": "^0.0.16",
     "@types/express-session": "^1.17.3",
     "@types/nodemailer": "^6.4.1",
