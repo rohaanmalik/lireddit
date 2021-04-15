@@ -33,6 +33,7 @@ const UsernamePasswordInput_1 = require("../utils/UsernamePasswordInput");
 const validateRegister_1 = require("../utils/validateRegister");
 const sendEmail_1 = require("../utils/sendEmail");
 const uuid_1 = require("uuid");
+const typeorm_1 = require("typeorm");
 let FieldError = class FieldError {
 };
 __decorate([
@@ -60,7 +61,7 @@ UserResponse = __decorate([
     type_graphql_1.ObjectType()
 ], UserResponse);
 let UserResolver = class UserResolver {
-    changePassword(token, newPassword, { em, req, redisClient }) {
+    changePassword(token, newPassword, { req, redisClient }) {
         return __awaiter(this, void 0, void 0, function* () {
             if (newPassword.length <= 2) {
                 return {
@@ -84,7 +85,8 @@ let UserResolver = class UserResolver {
                     ],
                 };
             }
-            const user = em.findOne(User_1.User, { id: parseInt(userId) });
+            const userIdNum = parseInt(userId);
+            const user = User_1.User.findOne({ id: userIdNum });
             if (!user) {
                 return {
                     errors: [
@@ -95,16 +97,15 @@ let UserResolver = class UserResolver {
                     ],
                 };
             }
-            user.password = yield argon2_1.default.hash(newPassword);
-            yield em.persistAndFlush(user);
+            yield User_1.User.update({ id: userIdNum }, { password: yield argon2_1.default.hash(newPassword) });
             yield redisClient.del(key);
             req.session.userID = user.id;
             return { user };
         });
     }
-    forgotPassword(email, { em, redisClient }) {
+    forgotPassword(email, { redisClient }) {
         return __awaiter(this, void 0, void 0, function* () {
-            const user = em.findOne(User_1.User, { email });
+            const user = User_1.User.findOne({ where: email });
             if (!user) {
                 return true;
             }
@@ -115,29 +116,35 @@ let UserResolver = class UserResolver {
             return true;
         });
     }
-    me({ em, req }) {
+    me({ req }) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!req.session.userID) {
-                return null;
+                return undefined;
             }
-            const user = yield em.findOne(User_1.User, { id: req.session.userID });
-            return user;
+            return User_1.User.findOne({ id: req.session.userID });
         });
     }
-    register(options, { em, req }) {
+    register(options, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
             const errors = validateRegister_1.validateRegister(options);
             if (errors) {
                 return { errors };
             }
             const hashedPassword = yield argon2_1.default.hash(options.password);
-            const user = em.create(User_1.User, {
-                username: options.username,
-                password: hashedPassword,
-                email: options.email,
-            });
+            let user;
             try {
-                yield em.persistAndFlush(user);
+                const result = yield typeorm_1.getConnection()
+                    .createQueryBuilder()
+                    .insert()
+                    .into(User_1.User)
+                    .values({
+                    username: options.username,
+                    password: hashedPassword,
+                    email: options.email,
+                }).
+                    returning("*")
+                    .execute();
+                user = result.raw[0];
             }
             catch (err) {
                 if (err.code == "23505") {
@@ -150,13 +157,12 @@ let UserResolver = class UserResolver {
                         ],
                     };
                 }
-                console.log("message: " + err.message);
             }
             req.session.userID = user.id;
             return { user };
         });
     }
-    login(usernameOrEmail, password, { em, req }) {
+    login(usernameOrEmail, password, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
             if (usernameOrEmail.length <= 2) {
                 return {
@@ -178,9 +184,9 @@ let UserResolver = class UserResolver {
                     ],
                 };
             }
-            const user = yield em.findOneOrFail(User_1.User, usernameOrEmail.includes("@")
-                ? { email: usernameOrEmail }
-                : { username: usernameOrEmail });
+            const user = yield User_1.User.findOne(usernameOrEmail.includes("@")
+                ? { where: { email: usernameOrEmail } }
+                : { where: { username: usernameOrEmail } });
             if (!user) {
                 return {
                     errors: [
