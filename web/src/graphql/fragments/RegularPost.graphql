@@ -1,0 +1,5 @@
+ fragment RegularPost on Post {
+    title
+    id
+    createdAt
+ }
