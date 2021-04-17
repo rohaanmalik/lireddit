@@ -1,5 +1,16 @@
+import { isAuth } from "../middlerware/isAuth";
 import { MyContext } from "src/types";
-import { Arg, Ctx, Field, InputType, Int, Mutation, Query, Resolver } from "type-graphql";
+import {
+  Arg,
+  Ctx,
+  Field,
+  InputType,
+  Int,
+  Mutation,
+  Query,
+  Resolver,
+  UseMiddleware,
+} from "type-graphql";
 import { Post } from "../entities/Post";
 
 @InputType()
@@ -30,6 +41,7 @@ export class PostResolver {
   }
 
   @Mutation(() => Post)
+  @UseMiddleware(isAuth)
   async createPost(
     @Arg("input") input: PostInput, // again two declaration  here bc graphql otherwise it's usually one
     @Ctx() { req }: MyContext
