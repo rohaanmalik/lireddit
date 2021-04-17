@@ -1,6 +1,26 @@
+import { isAuth } from "../middlerware/isAuth";
+import { MyContext } from "src/types";
+import {
+  Arg,
+  Ctx,
+  Field,
+  InputType,
+  Int,
+  Mutation,
+  Query,
+  Resolver,
+  UseMiddleware,
+} from "type-graphql";
 import { Post } from "../entities/Post";
-import { MyContext } from "../types";
-import { Arg, Ctx, Int, Mutation, Query, Resolver } from "type-graphql";
+
+@InputType()
+class PostInput {
+  @Field()
+  title: string;
+
+  @Field()
+  text: string;
+}
 
 @Resolver()
 export class PostResolver {
@@ -13,7 +33,7 @@ export class PostResolver {
 
   @Query(() => Post, { nullable: true }) // Post | null for graphql type
   postsById(
-    @Arg("id", () => Int) id: number, // again two declaration  here bc graphql otherwise it's usually one
+    @Arg("id", () => Int) id: number // again two declaration  here bc graphql otherwise it's usually one
   ): Promise<Post | undefined> {
     // duplication of promise type bc type-graphql (ts type)
     // return an array of post
@@ -21,18 +41,24 @@ export class PostResolver {
   }
 
   @Mutation(() => Post)
+  @UseMiddleware(isAuth)
   async createPost(
-    @Arg("title", () => String) title: string, // again two declaration  here bc graphql otherwise it's usually one
+    @Arg("input") input: PostInput, // again two declaration  here bc graphql otherwise it's usually one
+    @Ctx() { req }: MyContext
   ): Promise<Post> {
     // duplication of promise type bc type-graphql (ts type)
     // return an array of post
-    return Post.create({ title }).save();
+    console.log(req.session.userID)
+    return Post.create({ 
+      ...input,
+      creatorId: req.session.userID
+     }).save();
   }
 
   @Mutation(() => Post, { nullable: true })
   async updatePost(
     @Arg("id", () => Int) id: number, // again two declaration  here bc graphql otherwise it"s usually one
-    @Arg("title", () => String, { nullable: true }) title: string,
+    @Arg("title", () => String, { nullable: true }) title: string
   ): Promise<Post | null> {
     // duplication of promise type bc type-graphql (ts type)
     // return an array of post
@@ -50,7 +76,7 @@ export class PostResolver {
 
   @Mutation(() => Boolean)
   async deletePost(
-    @Arg("id", () => Int) id: number, // again two declaration  here bc graphql otherwise it"s usually one
+    @Arg("id", () => Int) id: number // again two declaration  here bc graphql otherwise it"s usually one
   ): Promise<Boolean> {
     // duplication of promise type bc type-graphql (ts type)
     try {
