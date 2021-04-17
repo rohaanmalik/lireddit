@@ -1,0 +1,5 @@
+mutation createPost($title: String!, $text: String!) {
+  createPost(input: { title: $title, text: $text }) {
+    ...RegularPost
+  }
+}
