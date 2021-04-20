@@ -12,6 +12,7 @@ import {
   UseMiddleware,
 } from "type-graphql";
 import { Post } from "../entities/Post";
+import { getConnection } from "typeorm";
 
 @InputType()
 class PostInput {
@@ -25,10 +26,21 @@ class PostInput {
 @Resolver()
 export class PostResolver {
   @Query(() => [Post]) // convert class posts into graphql types
-  posts(): Promise<Post[]> {
-    // duplication bc type-graph
-    // return an array of post
-    return Post.find();
+  posts(
+    @Arg("limit") limit: number,
+    @Arg("offset", () => String, { nullable: true }) cursor: string | null
+  ): Promise<Post[]> {
+
+    const realLimit = Math.min(50, limit);
+    const qb = getConnection()
+      .getRepository(Post)
+      .createQueryBuilder("p")
+      .orderBy('"createdAt"', "DESC")
+      .take(realLimit)
+    if (cursor){
+      qb.where('"createdAt" < :cursor', { cursor: new Date(parseInt(cursor)) });
+    }
+    return qb.getMany();
   }
 
   @Query(() => Post, { nullable: true }) // Post | null for graphql type
@@ -48,11 +60,11 @@ export class PostResolver {
   ): Promise<Post> {
     // duplication of promise type bc type-graphql (ts type)
     // return an array of post
-    console.log(req.session.userID)
-    return Post.create({ 
+    console.log(req.session.userID);
+    return Post.create({
       ...input,
-      creatorId: req.session.userID
-     }).save();
+      creatorId: req.session.userID,
+    }).save();
   }
 
   @Mutation(() => Post, { nullable: true })
