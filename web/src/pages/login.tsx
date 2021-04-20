@@ -13,9 +13,11 @@ import NextLink from "next/link"
 
 const Login: React.FC<{}> = ({}) => {
 
+  const router = useRouter();
+
   const [, login] = useLoginMutation();
 
-  const router = useRouter();
+  console.log(router)
   return (
     <Wrapper variant={"small"}>
       <Formik
@@ -25,8 +27,12 @@ const Login: React.FC<{}> = ({}) => {
           if (response.data?.login.errors) {
             setErrors(toErrorMap(response.data.login.errors));
           } else if (response.data?.login.user) {
-            // logged in
-            router.push("/");
+            if (typeof router.query.next === "string") {
+              router.push(router.query.next);
+            } else {
+              // logged in
+              router.push("/");
+            }
           }
         }}
       >

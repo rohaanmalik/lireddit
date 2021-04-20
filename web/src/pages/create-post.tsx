@@ -14,6 +14,7 @@ const CreatePost: React.FC<{}> = ({}) => {
 
     const [,createPost] = useCreatePostMutation();
     useIsAuth();
+
     const router = useRouter();
 
     return (
