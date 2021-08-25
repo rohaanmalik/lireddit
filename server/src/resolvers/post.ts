@@ -27,8 +27,8 @@ class PostInput {
 export class PostResolver {
   @Query(() => [Post]) // convert class posts into graphql types
   posts(
-    @Arg("limit") limit: number,
-    @Arg("offset", () => String, { nullable: true }) cursor: string | null
+    @Arg("limit", () => Int) limit: number,
+    @Arg("cursor", () => String, { nullable: true }) cursor: string | null
   ): Promise<Post[]> {
 
     const realLimit = Math.min(50, limit);
