@@ -3,7 +3,7 @@ import { Layout } from "../components/Layout";
 import { usePostsQuery } from "../generated/graphql";
 import { createUrqlClient } from "../utils/createUrqlClient";
 import NextLink from "next/link";
-import { Box, Heading, Link, Stack, Text } from "@chakra-ui/react";
+import { Box, Flex, Heading, Link, Stack, Text } from "@chakra-ui/react";
 
 const Index = () => {
   const [{ data }] = usePostsQuery({
@@ -13,9 +13,14 @@ const Index = () => {
   });
     return (
       <Layout>
+        <Flex align="center">
+          <Heading>
+          LiReddit
+          </Heading>
         <NextLink href="/create-post">
-          <Link> create post </Link>
+          <Link ml="auto"> create post </Link>
         </NextLink>
+        </Flex>
         {!data ? (
           <div>...loading</div>
         ) : (
