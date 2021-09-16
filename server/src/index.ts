@@ -33,9 +33,11 @@ const main = async () => {
   
   // await Post.delete({});
 
+  // Cache 
   const RedisStore = connectRedis(session);
   const redisClient =  new redis();
 
+  // middle-ware
   app.use(
     cors({
       origin: "http://localhost:3000",
@@ -43,6 +45,7 @@ const main = async () => {
     })
   );
 
+  // caching again
   app.use(
     session({
       name: COOKIE_NAME,
@@ -62,6 +65,7 @@ const main = async () => {
     })
   );
 
+  // graphql resolver set-up
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
       resolvers: [HelloResolver, PostResolver, UserResolver],
